@@ -5,6 +5,20 @@ from . import data_generators
 import copy
 
 
+def calc_rot_y(R, img_data, C, class_mapping):
+    bboxes = img_data['bboxes']
+    (width, height) = (img_data['width'], img_data['height'])
+
+    gta = np.zeros((len(bboxes), 4))
+
+    for bbox_num, bbox in enumerate(bboxes):
+        # get the GT box coordinates, and resize to account for image resizing
+        gta[bbox_num, 0] = int(round(bbox['r1'] * (resized_width / float(width)) / C.rpn_stride))
+        gta[bbox_num, 1] = int(round(bbox['r2'] * (resized_width / float(width)) / C.rpn_stride))
+        gta[bbox_num, 2] = int(round(bbox['r3'] * (resized_height / float(height)) / C.rpn_stride))
+        gta[bbox_num, 3] = int(round(bbox['r4'] * (resized_height / float(height)) / C.rpn_stride))
+
+
 def calc_iou(R, img_data, C, class_mapping):
     bboxes = img_data['bboxes']
     (width, height) = (img_data['width'], img_data['height'])
@@ -24,6 +38,9 @@ def calc_iou(R, img_data, C, class_mapping):
     y_class_num = []
     y_class_regr_coords = []
     y_class_regr_label = []
+    # Rotate
+    y_class_regr_coords_rot = []
+
     IoUs = []  # for debugging only
 
     for ix in range(R.shape[0]):
@@ -75,25 +92,34 @@ def calc_iou(R, img_data, C, class_mapping):
         y_class_num.append(copy.deepcopy(class_label))
         coords = [0] * 4 * (len(class_mapping) - 1)
         labels = [0] * 4 * (len(class_mapping) - 1)
+        # Rotate
+        coords_rot = [0] * 4 * (len(class_mapping)-1)
         if cls_name != 'bg':
             label_pos = 4 * class_num
             sx, sy, sw, sh = C.classifier_regr_std
             coords[label_pos:4 + label_pos] = [sx * tx, sy * ty, sw * tw, sh * th]
             labels[label_pos:4 + label_pos] = [1, 1, 1, 1]
-            y_class_regr_coords.append(copy.deepcopy(coords))
-            y_class_regr_label.append(copy.deepcopy(labels))
-        else:
-            y_class_regr_coords.append(copy.deepcopy(coords))
-            y_class_regr_label.append(copy.deepcopy(labels))
+
+            # Rotate
+            coords_rot[label_pos:4+label_pos] = [sx * tx, sy * ty, sw * tw, sh * th]
+
+        y_class_regr_coords.append(copy.deepcopy(coords))
+        y_class_regr_label.append(copy.deepcopy(labels))
+
+        # Rotate
+        y_class_regr_coords_rot.append(copy.deepcopy(coords_rot))
 
     if len(x_roi) == 0:
-        return None, None, None, None
+        return None, None, None, None, None
 
     X = np.array(x_roi)
     Y1 = np.array(y_class_num)
     Y2 = np.concatenate([np.array(y_class_regr_label), np.array(y_class_regr_coords)], axis=1)
+    # TODO
+    Y3 = np.concatenate([np.array(y_class_regr_label), np.array(y_class_regr_coords_rot)], axis=1)
 
-    return np.expand_dims(X, axis=0), np.expand_dims(Y1, axis=0), np.expand_dims(Y2, axis=0), IoUs
+    return np.expand_dims(X, axis=0), np.expand_dims(Y1, axis=0), np.expand_dims(Y2, axis=0), \
+           np.expand_dims(Y3, axis=0), IoUs
 
 
 def apply_regr(x, y, w, h, tx, ty, tw, th):

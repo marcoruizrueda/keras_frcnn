@@ -18,7 +18,7 @@ import keras_frcnn.roi_helpers as roi_helpers
 from keras.utils import generic_utils
 import os
 from keras_frcnn import resnet as nn
-from keras_frcnn.simple_parser import get_data
+from keras_frcnn.rot_parser import get_data
 
 
 def train_kitti():
@@ -102,7 +102,8 @@ def train_kitti():
     model_rpn.compile(optimizer=optimizer,
                       loss=[losses_fn.rpn_loss_cls(num_anchors), losses_fn.rpn_loss_regr(num_anchors)])
     model_classifier.compile(optimizer=optimizer_classifier,
-                             loss=[losses_fn.class_loss_cls, losses_fn.class_loss_regr(len(classes_count) - 1)],
+                             loss=[losses_fn.class_loss_cls, losses_fn.class_loss_regr(len(classes_count) - 1),
+                                   losses_fn.class_loss_regr_rot(len(classes_count)-1)],
                              metrics={'dense_class_{}'.format(len(classes_count)): 'accuracy'})
     model_all.compile(optimizer='sgd', loss='mae')
 
@@ -110,7 +111,7 @@ def train_kitti():
     num_epochs = int(cfg.num_epochs)
     iter_num = 0
 
-    losses = np.zeros((epoch_length, 5))
+    losses = np.zeros((epoch_length, 6))
     rpn_accuracy_rpn_monitor = []
     rpn_accuracy_for_epoch = []
     start_time = time.time()
@@ -150,7 +151,8 @@ def train_kitti():
                                                 overlap_thresh=0.7,
                                                 max_boxes=300)
                 # note: calc_iou converts from (x1,y1,x2,y2) to (x,y,w,h) format
-                X2, Y1, Y2, IouS = roi_helpers.calc_iou(result, img_data, cfg, class_mapping)
+                X2, Y1, Y2, Y3, IouS = roi_helpers.calc_iou(result, img_data, cfg, class_mapping)
+
 
                 if X2 is None:
                     rpn_accuracy_rpn_monitor.append(0)
@@ -196,7 +198,9 @@ def train_kitti():
                         sel_samples = random.choice(pos_samples)
 
                 loss_class = model_classifier.train_on_batch([X, X2[:, sel_samples, :]],
-                                                             [Y1[:, sel_samples, :], Y2[:, sel_samples, :]])
+                                                             [Y1[:, sel_samples, :],
+                                                              Y2[:, sel_samples, :],
+                                                              Y3[:, sel_samples, :]])
 
                 losses[iter_num, 0] = loss_rpn[1]
                 losses[iter_num, 1] = loss_rpn[2]
@@ -204,20 +208,23 @@ def train_kitti():
                 losses[iter_num, 2] = loss_class[1]
                 losses[iter_num, 3] = loss_class[2]
                 losses[iter_num, 4] = loss_class[3]
+                losses[iter_num, 5] = loss_class[4]
 
                 iter_num += 1
 
                 progbar.update(iter_num,
                                [('rpn_cls', np.mean(losses[:iter_num, 0])), ('rpn_regr', np.mean(losses[:iter_num, 1])),
                                 ('detector_cls', np.mean(losses[:iter_num, 2])),
-                                ('detector_regr', np.mean(losses[:iter_num, 3]))])
+                                ('detector_regr', np.mean(losses[:iter_num, 3])),
+                                ('detector_regr_rot', np.mean(losses[:iter_num, 4]))])
 
                 if iter_num == epoch_length:
                     loss_rpn_cls = np.mean(losses[:, 0])
                     loss_rpn_regr = np.mean(losses[:, 1])
                     loss_class_cls = np.mean(losses[:, 2])
                     loss_class_regr = np.mean(losses[:, 3])
-                    class_acc = np.mean(losses[:, 4])
+                    loss_class_regr_rot = np.mean(losses[:, 4])
+                    class_acc = np.mean(losses[:, 5])
 
                     mean_overlapping_bboxes = float(sum(rpn_accuracy_for_epoch)) / len(rpn_accuracy_for_epoch)
                     rpn_accuracy_for_epoch = []
@@ -230,9 +237,10 @@ def train_kitti():
                         print('Loss RPN regression: {}'.format(loss_rpn_regr))
                         print('Loss Detector classifier: {}'.format(loss_class_cls))
                         print('Loss Detector regression: {}'.format(loss_class_regr))
+                        print('Loss Detector regression rotate: {}'.format(loss_class_regr_rot))
                         print('Elapsed time: {}'.format(time.time() - start_time))
 
-                    curr_loss = loss_rpn_cls + loss_rpn_regr + loss_class_cls + loss_class_regr
+                    curr_loss = loss_rpn_cls + loss_rpn_regr + loss_class_cls + loss_class_regr + loss_class_regr_rot
                     iter_num = 0
                     start_time = time.time()
 
