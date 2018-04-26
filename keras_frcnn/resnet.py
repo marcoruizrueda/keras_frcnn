@@ -263,4 +263,9 @@ def classifier(base_layers, input_rois, num_rois, nb_classes=21, trainable=False
     # note: no regression target for bg class
     out_regr = TimeDistributed(Dense(4 * (nb_classes - 1), activation='linear', kernel_initializer='zero'),
                                name='dense_regress_{}'.format(nb_classes))(out)
-    return [out_class, out_regr]
+
+    # note: no regression target for bg class
+    out_regr_rot = TimeDistributed(Dense(4 * (nb_classes-1), activation='linear', kernel_initializer='zero'),
+                               name='dense_regress_rot{}'.format(nb_classes))(out)
+
+    return [out_class, out_regr, out_regr_rot]
