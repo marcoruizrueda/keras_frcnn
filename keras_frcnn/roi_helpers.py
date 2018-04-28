@@ -8,8 +8,10 @@ import copy
 def calc_rot_y(R, img_data, C, class_mapping):
     bboxes = img_data['bboxes']
     (width, height) = (img_data['width'], img_data['height'])
+    # get image dimensions for resizing
+    (resized_width, resized_height) = data_generators.get_new_img_size(width, height, C.im_size)
 
-    gta = np.zeros((len(bboxes), 4))
+    gta = np.zeros((len(bboxes), 5))
 
     for bbox_num, bbox in enumerate(bboxes):
         # get the GT box coordinates, and resize to account for image resizing
@@ -17,6 +19,13 @@ def calc_rot_y(R, img_data, C, class_mapping):
         gta[bbox_num, 1] = int(round(bbox['r2'] * (resized_width / float(width)) / C.rpn_stride))
         gta[bbox_num, 2] = int(round(bbox['r3'] * (resized_height / float(height)) / C.rpn_stride))
         gta[bbox_num, 3] = int(round(bbox['r4'] * (resized_height / float(height)) / C.rpn_stride))
+        gta[bbox_num, 4] = int(round(bbox['r5'] * (resized_height / float(height)) / C.rpn_stride))
+    
+    # TODO
+    Y3 = np.concatenate([np.array(y_class_regr_label), np.array(y_class_regr_coords)], axis=1)
+    return np.expand_dims(Y3, axis=0)
+
+
 
 
 def calc_iou(R, img_data, C, class_mapping):
@@ -115,11 +124,8 @@ def calc_iou(R, img_data, C, class_mapping):
     X = np.array(x_roi)
     Y1 = np.array(y_class_num)
     Y2 = np.concatenate([np.array(y_class_regr_label), np.array(y_class_regr_coords)], axis=1)
-    # TODO
-    Y3 = np.concatenate([np.array(y_class_regr_label), np.array(y_class_regr_coords_rot)], axis=1)
-
-    return np.expand_dims(X, axis=0), np.expand_dims(Y1, axis=0), np.expand_dims(Y2, axis=0), \
-           np.expand_dims(Y3, axis=0), IoUs
+    
+    return np.expand_dims(X, axis=0), np.expand_dims(Y1, axis=0), np.expand_dims(Y2, axis=0), IoUs
 
 
 def apply_regr(x, y, w, h, tx, ty, tw, th):

@@ -5,12 +5,10 @@ import numpy as np
 def get_data(input_path):
     found_bg = False
     all_imgs = {}
-
     classes_count = {}
-
     class_mapping = {}
 
-    visualise = True
+    #visualise = True
 
     with open(input_path, 'r') as f:
 
@@ -18,7 +16,7 @@ def get_data(input_path):
 
         for line in f:
             line_split = line.strip().split(',')
-            (filename, x1, y1, x2, y2, r1, r2, r3, r4, class_name) = line_split
+            (filename, x1, y1, x2, y2, r1, r2, r3, r4, r5, class_name) = line_split
 
             if class_name not in classes_count:
                 classes_count[class_name] = 1
@@ -55,7 +53,8 @@ def get_data(input_path):
                  'r1': int(float(r1)),
                  'r2': int(float(r2)),
                  'r3': int(float(r3)),
-                 'r4': int(float(r4))})
+                 'r4': int(float(r4)),
+                 'r5': int(float(r5))})
 
         all_data = []
         for key in all_imgs:

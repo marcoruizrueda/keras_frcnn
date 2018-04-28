@@ -4,7 +4,6 @@ this code will train on kitti data set
 from __future__ import division
 import random
 import pprint
-import sys
 import time
 import numpy as np
 import pickle
@@ -25,15 +24,15 @@ def train_kitti():
     # config for data argument
     cfg = config.Config()
 
-    cfg.use_horizontal_flips = True
-    cfg.use_vertical_flips = True
-    cfg.rot_90 = True
+    cfg.use_horizontal_flips = False
+    cfg.use_vertical_flips = False
+    cfg.rot_90 = False
     cfg.num_rois = 32
     cfg.base_net_weights = os.path.join('./model/', nn.get_weight_path())
 
     # TODO: the only file should to be change for other data to train
     cfg.model_path = './model/kitti_frcnn_last.hdf5'
-    cfg.simple_label_file = 'kitti_simple_label.txt'
+    cfg.simple_label_file = 'rbboxes_simple_300_cx.txt'
 
     all_images, classes_count, class_mapping = get_data(cfg.simple_label_file)
 
@@ -47,13 +46,13 @@ def train_kitti():
         print('Config has been written to {}, and can be loaded when testing to ensure correct results'.format(
             cfg.config_save_file))
 
-    inv_map = {v: k for k, v in class_mapping.items()}
+    #inv_map = {v: k for k, v in class_mapping.items()}
 
     print('Training images per class:')
     pprint.pprint(classes_count)
     print('Num classes (including bg) = {}'.format(len(classes_count)))
     random.shuffle(all_images)
-    num_imgs = len(all_images)
+    #num_imgs = len(all_images)
     train_imgs = [s for s in all_images if s['imageset'] == 'trainval']
     val_imgs = [s for s in all_images if s['imageset'] == 'test']
 
@@ -118,10 +117,10 @@ def train_kitti():
 
     best_loss = np.Inf
 
-    class_mapping_inv = {v: k for k, v in class_mapping.items()}
+    #class_mapping_inv = {v: k for k, v in class_mapping.items()}
     print('Starting training')
 
-    vis = True
+    #vis = True
 
     for epoch_num in range(num_epochs):
 
