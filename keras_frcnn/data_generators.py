@@ -37,19 +37,6 @@ def iou(a, b):
     return float(area_i) / float(area_u+1e-6)
 
 
-def iou_(a, b):
-    # a and b should be (x1,y1,x2,y2)
-
-    if a[0] >= a[2] or a[1] >= a[3] or b[0] >= b[2] or b[1] >= b[3]:
-        return 0.0
-
-    area_i = intersection(a, b)
-    area_u = union(a, b, area_i)
-
-    return float(area_i) / float(area_u+1e-6)
-
-
-
 def get_new_img_size(width, height, img_min_side=600):
     if width <= height:
         f = float(img_min_side) / width

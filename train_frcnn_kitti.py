@@ -86,7 +86,8 @@ def train_kitti():
 
     # this is a model that holds both the RPN and the classifier, used to load/save weights for the models
     model_all = Model([img_input, roi_input], rpn[:2] + classifier)
-
+    #model_all.summary()
+    
     try:
         print('loading weights from {}'.format(cfg.base_net_weights))
         model_rpn.load_weights(cfg.model_path, by_name=True)
@@ -150,8 +151,9 @@ def train_kitti():
                                                 overlap_thresh=0.7,
                                                 max_boxes=300)
                 # note: calc_iou converts from (x1,y1,x2,y2) to (x,y,w,h) format
-                X2, Y1, Y2, Y3, IouS = roi_helpers.calc_iou(result, img_data, cfg, class_mapping)
-
+                X2, Y1, Y2, IouS = roi_helpers.calc_iou(result, img_data, cfg, class_mapping)
+                ## GT labels-Transformed
+                Y3_rot = roi_helpers.calc_rot_y(img_data, cfg, class_mapping)
 
                 if X2 is None:
                     rpn_accuracy_rpn_monitor.append(0)
@@ -196,11 +198,13 @@ def train_kitti():
                     else:
                         sel_samples = random.choice(pos_samples)
 
+                print('----------------------------')
+                print(X.shape, Y1.shape, Y2.shape, Y3_rot.shape)  
                 loss_class = model_classifier.train_on_batch([X, X2[:, sel_samples, :]],
                                                              [Y1[:, sel_samples, :],
                                                               Y2[:, sel_samples, :],
-                                                              Y3[:, sel_samples, :]])
-
+                                                              Y3_rot])
+                
                 losses[iter_num, 0] = loss_rpn[1]
                 losses[iter_num, 1] = loss_rpn[2]
 

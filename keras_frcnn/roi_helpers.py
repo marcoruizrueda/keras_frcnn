@@ -5,7 +5,7 @@ from . import data_generators
 import copy
 
 
-def calc_rot_y(R, img_data, C, class_mapping):
+def calc_rot_y(img_data, C, class_mapping):
     bboxes = img_data['bboxes']
     (width, height) = (img_data['width'], img_data['height'])
     # get image dimensions for resizing
@@ -15,15 +15,26 @@ def calc_rot_y(R, img_data, C, class_mapping):
 
     for bbox_num, bbox in enumerate(bboxes):
         # get the GT box coordinates, and resize to account for image resizing
-        gta[bbox_num, 0] = int(round(bbox['r1'] * (resized_width / float(width)) / C.rpn_stride))
-        gta[bbox_num, 1] = int(round(bbox['r2'] * (resized_width / float(width)) / C.rpn_stride))
-        gta[bbox_num, 2] = int(round(bbox['r3'] * (resized_height / float(height)) / C.rpn_stride))
-        gta[bbox_num, 3] = int(round(bbox['r4'] * (resized_height / float(height)) / C.rpn_stride))
-        gta[bbox_num, 4] = int(round(bbox['r5'] * (resized_height / float(height)) / C.rpn_stride))
+        gta[bbox_num, 0] = int(round(bbox['cx'] * (resized_width / float(width)) / C.rpn_stride))
+        gta[bbox_num, 1] = int(round(bbox['cy'] * (resized_width / float(width)) / C.rpn_stride))
+        gta[bbox_num, 2] = int(round(bbox['w'] * (resized_height / float(height)) / C.rpn_stride))
+        gta[bbox_num, 3] = int(round(bbox['h'] * (resized_height / float(height)) / C.rpn_stride))
+        gta[bbox_num, 4] = bbox['t']
+        
+        cls_name = bboxes[bbox_num]['class']
+        class_num = class_mapping[cls_name]
+        if cls_name != 'bg':
+            label_pos = 5 * class_num
+        
+        y_class_regr_coords_rot = []
+        coords_rot = [0] * 5 * (len(class_mapping)-1)
+        coords_rot[label_pos:5+label_pos] = [
+                gta[bbox_num, 0], gta[bbox_num, 1], gta[bbox_num, 2], 
+                gta[bbox_num, 3], gta[bbox_num, 4]]
+        y_class_regr_coords_rot.append(copy.deepcopy(coords_rot))
     
-    # TODO
-    Y3 = np.concatenate([np.array(y_class_regr_label), np.array(y_class_regr_coords)], axis=1)
-    return np.expand_dims(Y3, axis=0)
+    Y3_rot = np.array(y_class_regr_coords_rot)
+    return np.expand_dims(Y3_rot, axis=0)
 
 
 
@@ -47,8 +58,7 @@ def calc_iou(R, img_data, C, class_mapping):
     y_class_num = []
     y_class_regr_coords = []
     y_class_regr_label = []
-    # Rotate
-    y_class_regr_coords_rot = []
+
 
     IoUs = []  # for debugging only
 
@@ -101,25 +111,19 @@ def calc_iou(R, img_data, C, class_mapping):
         y_class_num.append(copy.deepcopy(class_label))
         coords = [0] * 4 * (len(class_mapping) - 1)
         labels = [0] * 4 * (len(class_mapping) - 1)
-        # Rotate
-        coords_rot = [0] * 4 * (len(class_mapping)-1)
+        
         if cls_name != 'bg':
             label_pos = 4 * class_num
             sx, sy, sw, sh = C.classifier_regr_std
             coords[label_pos:4 + label_pos] = [sx * tx, sy * ty, sw * tw, sh * th]
             labels[label_pos:4 + label_pos] = [1, 1, 1, 1]
 
-            # Rotate
-            coords_rot[label_pos:4+label_pos] = [sx * tx, sy * ty, sw * tw, sh * th]
-
         y_class_regr_coords.append(copy.deepcopy(coords))
         y_class_regr_label.append(copy.deepcopy(labels))
 
-        # Rotate
-        y_class_regr_coords_rot.append(copy.deepcopy(coords_rot))
 
     if len(x_roi) == 0:
-        return None, None, None, None, None
+        return None, None, None, None
 
     X = np.array(x_roi)
     Y1 = np.array(y_class_num)
