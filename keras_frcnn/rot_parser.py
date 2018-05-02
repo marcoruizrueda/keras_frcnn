@@ -50,11 +50,11 @@ def get_data(input_path):
                  'x2': int(float(x2)),
                  'y1': int(float(y1)),
                  'y2': int(float(y2)),
-                 'r1': int(float(r1)),
-                 'r2': int(float(r2)),
-                 'r3': int(float(r3)),
-                 'r4': int(float(r4)),
-                 'r5': int(float(r5))})
+                 'cx': int(float(r1)),
+                 'cy': int(float(r2)),
+                 'w': int(float(r3)),
+                 'h': int(float(r4)),
+                 't': int(float(r5))})
 
         all_data = []
         for key in all_imgs:
