@@ -86,7 +86,8 @@ def train_kitti():
 
     # this is a model that holds both the RPN and the classifier, used to load/save weights for the models
     model_all = Model([img_input, roi_input], rpn[:2] + classifier)
-
+    #model_all.summary()
+    
     try:
         print('loading weights from {}'.format(cfg.base_net_weights))
         model_rpn.load_weights(cfg.model_path, by_name=True)
@@ -128,7 +129,7 @@ def train_kitti():
         print('Epoch {}/{}'.format(epoch_num + 1, num_epochs))
 
         while True:
-            try:
+            #try:
 
                 if len(rpn_accuracy_rpn_monitor) == epoch_length and cfg.verbose:
                     mean_overlapping_bboxes = float(sum(rpn_accuracy_rpn_monitor)) / len(rpn_accuracy_rpn_monitor)
@@ -151,7 +152,8 @@ def train_kitti():
                                                 max_boxes=300)
                 # note: calc_iou converts from (x1,y1,x2,y2) to (x,y,w,h) format
                 X2, Y1, Y2, Y3, IouS = roi_helpers.calc_iou(result, img_data, cfg, class_mapping)
-
+                ## GT labels-Transformed
+                #Y3_rot = roi_helpers.calc_rot_y(img_data, cfg, class_mapping)
 
                 if X2 is None:
                     rpn_accuracy_rpn_monitor.append(0)
@@ -196,11 +198,13 @@ def train_kitti():
                     else:
                         sel_samples = random.choice(pos_samples)
 
+
+
                 loss_class = model_classifier.train_on_batch([X, X2[:, sel_samples, :]],
                                                              [Y1[:, sel_samples, :],
                                                               Y2[:, sel_samples, :],
                                                               Y3[:, sel_samples, :]])
-
+                
                 losses[iter_num, 0] = loss_rpn[1]
                 losses[iter_num, 1] = loss_rpn[2]
 
@@ -251,11 +255,11 @@ def train_kitti():
 
                     break
 
-            except Exception as e:
-                print('Exception: {}'.format(e))
+            #except Exception as e:
+            #    print('Exception: {}'.format(e))
                 # save model
-                model_all.save_weights(cfg.model_path)
-                continue
+            #    model_all.save_weights(cfg.model_path)
+            #    continue
     print('Training complete, exiting.')
 
 
