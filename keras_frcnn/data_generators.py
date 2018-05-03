@@ -49,7 +49,6 @@ def iou_(a, b):
     return float(area_i) / float(area_u+1e-6)
 
 
-
 def get_new_img_size(width, height, img_min_side=600):
     if width <= height:
         f = float(img_min_side) / width
@@ -175,18 +174,21 @@ def calc_rpn(C, img_data, width, height, resized_width, resized_height, img_leng
 
                         if img_data['bboxes'][bbox_num]['class'] != 'bg':
 
-                            # all GT boxes should be mapped to an anchor box, so we keep track of which anchor box was best
+                            # all GT boxes should be mapped to an anchor box, so we keep track of which anchor box
+                            # was best
                             if curr_iou > best_iou_for_bbox[bbox_num]:
                                 best_anchor_for_bbox[bbox_num] = [jy, ix, anchor_ratio_idx, anchor_size_idx]
                                 best_iou_for_bbox[bbox_num] = curr_iou
                                 best_x_for_bbox[bbox_num, :] = [x1_anc, x2_anc, y1_anc, y2_anc]
                                 best_dx_for_bbox[bbox_num, :] = [tx, ty, tw, th]
 
-                            # we set the anchor to positive if the IOU is >0.7 (it does not matter if there was another better box, it just indicates overlap)
+                            # we set the anchor to positive if the IOU is >0.7 (it does not matter if there was
+                            # another better box, it just indicates overlap)
                             if curr_iou > C.rpn_max_overlap:
                                 bbox_type = 'pos'
                                 num_anchors_for_bbox[bbox_num] += 1
-                                # we update the regression layer target if this IOU is the best for the current (x,y) and anchor position
+                                # we update the regression layer target if this IOU is the best for the current (x,
+                                # y) and anchor position
                                 if curr_iou > best_iou_for_loc:
                                     best_iou_for_loc = curr_iou
                                     best_regr = (tx, ty, tw, th)

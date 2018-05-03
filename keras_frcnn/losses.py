@@ -63,8 +63,7 @@ def class_loss_regr(num_classes):
     return class_loss_regr_fixed_num
 
 
-#TODO
-def class_loss_regr_rot(num_classes):
+def class_loss_regression_rot(num_classes):
     def class_loss_regr_fixed_num(y_true, y_pred):
         x = y_true[:, :, 5 * num_classes:]-y_pred
         x_abs = K.abs(x)

@@ -1,9 +1,7 @@
 import numpy as np
-import pdb
 import math
 from . import data_generators
 import copy
-
 
 
 def calc_iou(R, img_data, C, class_mapping):
@@ -12,7 +10,7 @@ def calc_iou(R, img_data, C, class_mapping):
     # get image dimensions for resizing
     (resized_width, resized_height) = data_generators.get_new_img_size(width, height, C.im_size)
 
-    gta = np.zeros((len(bboxes), 4 + 5))
+    gta = np.zeros((len(bboxes), 4+5))
 
     for bbox_num, bbox in enumerate(bboxes):
         # get the GT box coordinates, and resize to account for image resizing
@@ -46,7 +44,7 @@ def calc_iou(R, img_data, C, class_mapping):
 
         best_iou = 0.0
         best_bbox = -1
-        cls_name, tx, ty, tw, th, cx_rot, cy_rot, w_rot, h_rot, tetha_rot = [None]*10
+        cls_name, tx, ty, tw, th, cx_rot, cy_rot, w_rot, h_rot, tetha_rot = [None] * 10
         for bbox_num in range(len(bboxes)):
             curr_iou = data_generators.iou([gta[bbox_num, 0], gta[bbox_num, 2], gta[bbox_num, 1], gta[bbox_num, 3]],
                                            [x1, y1, x2, y2])
@@ -57,8 +55,8 @@ def calc_iou(R, img_data, C, class_mapping):
         if best_iou < C.classifier_min_overlap:
             continue
         else:
-            w = x2 - x1
-            h = y2 - y1
+            w = x2-x1
+            h = y2-y1
             x_roi.append([x1, y1, w, h])
             IoUs.append(best_iou)
 
@@ -67,16 +65,16 @@ def calc_iou(R, img_data, C, class_mapping):
                 cls_name = 'bg'
             elif C.classifier_max_overlap <= best_iou:
                 cls_name = bboxes[best_bbox]['class']
-                cxg = (gta[best_bbox, 0] + gta[best_bbox, 1]) / 2.0
-                cyg = (gta[best_bbox, 2] + gta[best_bbox, 3]) / 2.0
+                cxg = (gta[best_bbox, 0]+gta[best_bbox, 1]) / 2.0
+                cyg = (gta[best_bbox, 2]+gta[best_bbox, 3]) / 2.0
 
-                cx = x1 + w / 2.0
-                cy = y1 + h / 2.0
+                cx = x1+w / 2.0
+                cy = y1+h / 2.0
 
-                tx = (cxg - cx) / float(w)
-                ty = (cyg - cy) / float(h)
-                tw = np.log((gta[best_bbox, 1] - gta[best_bbox, 0]) / float(w))
-                th = np.log((gta[best_bbox, 3] - gta[best_bbox, 2]) / float(h))
+                tx = (cxg-cx) / float(w)
+                ty = (cyg-cy) / float(h)
+                tw = np.log((gta[best_bbox, 1]-gta[best_bbox, 0]) / float(w))
+                th = np.log((gta[best_bbox, 3]-gta[best_bbox, 2]) / float(h))
 
                 # Rotate
                 # TODO add
@@ -94,21 +92,21 @@ def calc_iou(R, img_data, C, class_mapping):
         class_label = len(class_mapping) * [0]
         class_label[class_num] = 1
         y_class_num.append(copy.deepcopy(class_label))
-        coords = [0] * 4 * (len(class_mapping) - 1)
-        labels = [0] * 4 * (len(class_mapping) - 1)
+        coords = [0] * 4 * (len(class_mapping)-1)
+        labels = [0] * 4 * (len(class_mapping)-1)
 
         labels_rot = [0] * 5 * (len(class_mapping)-1)
         coords_rot = [0] * 5 * (len(class_mapping)-1)
-        
+
         if cls_name != 'bg':
             label_pos = 4 * class_num
             sx, sy, sw, sh = C.classifier_regr_std
-            coords[label_pos:4 + label_pos] = [sx * tx, sy * ty, sw * tw, sh * th]
-            labels[label_pos:4 + label_pos] = [1, 1, 1, 1]
+            coords[label_pos:4+label_pos] = [sx * tx, sy * ty, sw * tw, sh * th]
+            labels[label_pos:4+label_pos] = [1, 1, 1, 1]
 
             label_pos_rot = 5 * class_num
-            labels_rot[label_pos_rot:5 + label_pos_rot] = [1, 1, 1, 1, 1]
-            coords_rot[label_pos_rot:5 + label_pos_rot] = [cx_rot, cy_rot, w_rot, h_rot, tetha_rot]
+            labels_rot[label_pos_rot:5+label_pos_rot] = [1, 1, 1, 1, 1]
+            coords_rot[label_pos_rot:5+label_pos_rot] = [cx_rot, cy_rot, w_rot, h_rot, tetha_rot]
 
         y_class_regr_coords.append(copy.deepcopy(coords))
         y_class_regr_label.append(copy.deepcopy(labels))
@@ -116,32 +114,29 @@ def calc_iou(R, img_data, C, class_mapping):
         y_class_regr_label_rot.append(copy.deepcopy(labels_rot))
         y_class_regr_coords_rot.append(copy.deepcopy(coords_rot))
 
-
-
     if len(x_roi) == 0:
         return None, None, None, None, None
 
     X = np.array(x_roi)
     Y1 = np.array(y_class_num)
     Y2 = np.concatenate([np.array(y_class_regr_label), np.array(y_class_regr_coords)], axis=1)
-    #Y3 = np.concatenate([np.array(y_class_regr_label), np.array(y_class_regr_coords)], axis=1)
+    # Y3 = np.concatenate([np.array(y_class_regr_label), np.array(y_class_regr_coords)], axis=1)
     Y3 = np.concatenate([np.array(y_class_regr_label_rot), np.array(y_class_regr_coords_rot)], axis=1)
 
-
-
-    return np.expand_dims(X, axis=0), np.expand_dims(Y1, axis=0), np.expand_dims(Y2, axis=0), np.expand_dims(Y3, axis=0), IoUs
+    return np.expand_dims(X, axis=0), np.expand_dims(Y1, axis=0), np.expand_dims(Y2, axis=0), np.expand_dims(Y3,
+                                                                                                             axis=0), IoUs
 
 
 def apply_regr(x, y, w, h, tx, ty, tw, th):
     try:
-        cx = x + w / 2.
-        cy = y + h / 2.
-        cx1 = tx * w + cx
-        cy1 = ty * h + cy
+        cx = x+w / 2.
+        cy = y+h / 2.
+        cx1 = tx * w+cx
+        cy1 = ty * h+cy
         w1 = math.exp(tw) * w
         h1 = math.exp(th) * h
-        x1 = cx1 - w1 / 2.
-        y1 = cy1 - h1 / 2.
+        x1 = cx1-w1 / 2.
+        y1 = cy1-h1 / 2.
         x1 = int(round(x1))
         y1 = int(round(y1))
         w1 = int(round(w1))
@@ -170,15 +165,15 @@ def apply_regr_np(X, T):
         tw = T[2, :, :]
         th = T[3, :, :]
 
-        cx = x + w / 2.
-        cy = y + h / 2.
-        cx1 = tx * w + cx
-        cy1 = ty * h + cy
+        cx = x+w / 2.
+        cy = y+h / 2.
+        cx1 = tx * w+cx
+        cy1 = ty * h+cy
 
         w1 = np.exp(tw.astype(np.float64)) * w
         h1 = np.exp(th.astype(np.float64)) * h
-        x1 = cx1 - w1 / 2.
-        y1 = cy1 - h1 / 2.
+        x1 = cx1-w1 / 2.
+        y1 = cy1-h1 / 2.
 
         x1 = np.round(x1)
         y1 = np.round(y1)
@@ -210,12 +205,12 @@ def non_max_suppression_fast(boxes, overlap_thresh=0.9, max_boxes=300):
         boxes = boxes.astype("float")
 
     pick = []
-    area = (x2 - x1) * (y2 - y1)
+    area = (x2-x1) * (y2-y1)
     # sorted by boxes last element which is prob
     indexes = np.argsort([i[-1] for i in boxes])
 
     while len(indexes) > 0:
-        last = len(indexes) - 1
+        last = len(indexes)-1
         i = indexes[last]
         pick.append(i)
 
@@ -225,15 +220,15 @@ def non_max_suppression_fast(boxes, overlap_thresh=0.9, max_boxes=300):
         xx2_int = np.minimum(x2[i], x2[indexes[:last]])
         yy2_int = np.minimum(y2[i], y2[indexes[:last]])
 
-        ww_int = np.maximum(0, xx2_int - xx1_int)
-        hh_int = np.maximum(0, yy2_int - yy1_int)
+        ww_int = np.maximum(0, xx2_int-xx1_int)
+        hh_int = np.maximum(0, yy2_int-yy1_int)
 
         area_int = ww_int * hh_int
         # find the union
-        area_union = area[i] + area[indexes[:last]] - area_int
+        area_union = area[i]+area[indexes[:last]]-area_int
 
         # compute the ratio of overlap
-        overlap = area_int / (area_union + 1e-6)
+        overlap = area_int / (area_union+1e-6)
 
         # delete all indexes from the index list that have
         indexes = np.delete(indexes, np.concatenate(([last], np.where(overlap > overlap_thresh)[0])))
@@ -271,15 +266,15 @@ def rpn_to_roi(rpn_layer, regr_layer, cfg, dim_ordering, use_regr=True, max_boxe
             anchor_x = (anchor_size * anchor_ratio[0]) / cfg.rpn_stride
             anchor_y = (anchor_size * anchor_ratio[1]) / cfg.rpn_stride
             if dim_ordering == 'th':
-                regr = regr_layer[0, 4 * curr_layer:4 * curr_layer + 4, :, :]
+                regr = regr_layer[0, 4 * curr_layer:4 * curr_layer+4, :, :]
             else:
-                regr = regr_layer[0, :, :, 4 * curr_layer:4 * curr_layer + 4]
+                regr = regr_layer[0, :, :, 4 * curr_layer:4 * curr_layer+4]
                 regr = np.transpose(regr, (2, 0, 1))
 
             X, Y = np.meshgrid(np.arange(cols), np.arange(rows))
 
-            A[0, :, :, curr_layer] = X - anchor_x / 2
-            A[1, :, :, curr_layer] = Y - anchor_y / 2
+            A[0, :, :, curr_layer] = X-anchor_x / 2
+            A[1, :, :, curr_layer] = Y-anchor_y / 2
             A[2, :, :, curr_layer] = anchor_x
             A[3, :, :, curr_layer] = anchor_y
 
@@ -293,8 +288,8 @@ def rpn_to_roi(rpn_layer, regr_layer, cfg, dim_ordering, use_regr=True, max_boxe
 
             A[0, :, :, curr_layer] = np.maximum(0, A[0, :, :, curr_layer])
             A[1, :, :, curr_layer] = np.maximum(0, A[1, :, :, curr_layer])
-            A[2, :, :, curr_layer] = np.minimum(cols - 1, A[2, :, :, curr_layer])
-            A[3, :, :, curr_layer] = np.minimum(rows - 1, A[3, :, :, curr_layer])
+            A[2, :, :, curr_layer] = np.minimum(cols-1, A[2, :, :, curr_layer])
+            A[3, :, :, curr_layer] = np.minimum(rows-1, A[3, :, :, curr_layer])
 
             curr_layer += 1
 
@@ -306,7 +301,7 @@ def rpn_to_roi(rpn_layer, regr_layer, cfg, dim_ordering, use_regr=True, max_boxe
     x2 = all_boxes[:, 2]
     y2 = all_boxes[:, 3]
 
-    ids = np.where((x1 - x2 >= 0) | (y1 - y2 >= 0))
+    ids = np.where((x1-x2 >= 0) | (y1-y2 >= 0))
 
     all_boxes = np.delete(all_boxes, ids, 0)
     all_probs = np.delete(all_probs, ids, 0)

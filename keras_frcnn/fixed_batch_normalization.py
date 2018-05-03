@@ -17,6 +17,11 @@ class FixedBatchNormalization(Layer):
         self.gamma_regularizer = regularizers.get(gamma_regularizer)
         self.beta_regularizer = regularizers.get(beta_regularizer)
         self.initial_weights = weights
+        self.gamma = None
+        self.beta = None
+        self.running_mean = None
+        self.running_std = None
+
         super(FixedBatchNormalization, self).__init__(**kwargs)
 
     def build(self, input_shape):
